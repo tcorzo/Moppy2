@@ -1,0 +1,4 @@
+rootProject.name = 'MoppyCLI'
+
+include ':MoppyLib'
+project(':MoppyLib').projectDir = file('../MoppyLib')
