@@ -214,10 +214,18 @@ public class PlaybackService implements StatusConsumer {
         }
     }
 
+    public void updateState() {
+        if (sequencer == null)
+            return;
+
+        state.setPosition((int) sequencer.getSecondsPosition());
+        state.setDuration((int) sequencer.getSecondsLength());
+    }
+
     public synchronized void shutdown() throws IOException {
-        if (sequencer != null) {
+        if (sequencer != null)
             sequencer.close();
-        }
+
         CompletableFuture<Void> playback = currentPlayback.get();
         if (playback != null) {
             playback.cancel(true);
