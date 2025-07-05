@@ -1,0 +1,875 @@
+openapi: 3.0.0
+info:
+  title: Moppy API
+  description: |
+    REST API for controlling Moppy musical hardware devices.
+
+    Moppy is a musical floppy drive controller that can play MIDI files through floppy drives, hard drives, and other computer hardware. This API provides programmatic control over MIDI playback, allowing you to load songs, control playback, and adjust parameters like tempo, volume, and position.
+
+    ## Features
+    - Load and play MIDI files (.mid, .midi)
+    - Control playback (play, pause, stop)
+    - Adjust tempo and volume in real-time
+    - Seek to specific positions in songs
+    - Loop playback
+    - Get real-time playback status and progress
+    - Monitor network status and connected devices
+    - Discover Moppy devices on the network
+
+    ## Getting Started
+    1. Start the Moppy API server: `java -jar MoppyAPI-2.2.0.jar [--port 8080]`
+    2. Check network status using `/api/network/status`
+    3. View discovered devices using `/api/network/devices`
+    4. Load a MIDI file using the `/api/load` endpoint
+    5. Control playback using the play/pause/stop endpoints
+    6. Monitor status using the `/api/state` or `/api/status` endpoints
+
+  version: 2.2.0
+  contact:
+    name: Moppy Project
+    url: https://github.com/SammyIAm/Moppy2
+  license:
+    name: MIT License
+    url: https://github.com/SammyIAm/Moppy2/blob/main/LICENSE
+
+servers:
+  - url: http://localhost:8080
+    description: Default local server
+  - url: http://localhost:{port}
+    description: Configurable local server
+    variables:
+      port:
+        default: "8080"
+        description: Server port number
+
+tags:
+  - name: playback
+    description: Playback control operations
+  - name: state
+    description: State and status information
+  - name: parameters
+    description: Playback parameter control
+  - name: network
+    description: Network and device management
+  - name: system
+    description: System operations
+
+paths:
+  /api/health:
+    get:
+      tags:
+        - system
+      summary: Health check
+      description: Check if the API server is running and healthy
+      operationId: getHealth
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  service:
+                    type: string
+                    example: "MoppyAPI"
+                  version:
+                    type: string
+                    example: "2.2.0"
+
+  /api/load:
+    post:
+      tags:
+        - playback
+      summary: Load a MIDI file
+      description: Load a MIDI file (.mid or .midi) for playback
+      operationId: loadSong
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - filePath
+              properties:
+                filePath:
+                  type: string
+                  description: Absolute or relative path to the MIDI file
+                  example: "/path/to/song.mid"
+            examples:
+              load_song:
+                summary: Load a MIDI file
+                value:
+                  filePath: "/home/user/music/tetris.mid"
+      responses:
+        "200":
+          description: Song loaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Song loaded successfully"
+                    fileName: "tetris.mid"
+        "400":
+          description: Bad request (invalid file path, unsupported format, or file not found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                file_not_found:
+                  value:
+                    error: "MIDI file not found: /path/to/nonexistent.mid"
+                    status: 400
+                invalid_format:
+                  value:
+                    error: "File must be a MIDI file (.mid or .midi)"
+                    status: 400
+
+  /api/play:
+    post:
+      tags:
+        - playback
+      summary: Start playback
+      description: Start or resume playback of the loaded MIDI file
+      operationId: play
+      responses:
+        "200":
+          description: Playback started successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Playback started"
+        "400":
+          description: Bad request (no song loaded)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                no_song:
+                  value:
+                    error: "No song loaded"
+                    status: 400
+        "405":
+          description: Method not allowed (only POST is supported)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/pause:
+    post:
+      tags:
+        - playback
+      summary: Pause playback
+      description: Pause the current playback (can be resumed with /api/play)
+      operationId: pause
+      responses:
+        "200":
+          description: Playback paused successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Playback paused"
+        "405":
+          description: Method not allowed (only POST is supported)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/stop:
+    post:
+      tags:
+        - playback
+      summary: Stop playback
+      description: Stop playback and reset position to beginning
+      operationId: stop
+      responses:
+        "200":
+          description: Playback stopped successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Playback stopped"
+        "405":
+          description: Method not allowed (only POST is supported)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/state:
+    get:
+      tags:
+        - state
+      summary: Get full playback state
+      description: Get complete playback state information including all parameters and metadata
+      operationId: getState
+      responses:
+        "200":
+          description: Current playback state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaybackState"
+        "405":
+          description: Method not allowed (only GET is supported)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/status:
+    get:
+      tags:
+        - state
+      summary: Get playback status
+      description: Get simplified playback status with formatted time information
+      operationId: getStatus
+      responses:
+        "200":
+          description: Current playback status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    $ref: "#/components/schemas/PlaybackStateEnum"
+                  isPlaying:
+                    type: boolean
+                    description: Whether playback is currently active
+                    example: true
+                  fileName:
+                    type: string
+                    description: Name of the loaded file
+                    example: "tetris.mid"
+                  progress:
+                    type: number
+                    format: double
+                    minimum: 0
+                    maximum: 1
+                    description: Playback progress as a decimal (0.0 to 1.0)
+                    example: 0.25
+                  position:
+                    type: string
+                    description: Current position in MM:SS format
+                    example: "1:30"
+                  duration:
+                    type: string
+                    description: Total duration in MM:SS format
+                    example: "6:00"
+        "405":
+          description: Method not allowed (only GET is supported)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/position:
+    get:
+      tags:
+        - parameters
+      summary: Get current position
+      description: Get the current playback position in seconds
+      operationId: getPosition
+      responses:
+        "200":
+          description: Current position
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  position:
+                    type: integer
+                    description: Current position in seconds
+                    example: 90
+                  formattedPosition:
+                    type: string
+                    description: Current position in MM:SS format
+                    example: "1:30"
+    put:
+      tags:
+        - parameters
+      summary: Set playback position
+      description: Seek to a specific position in the song
+      operationId: setPosition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - position
+              properties:
+                position:
+                  type: integer
+                  minimum: 0
+                  description: Position in seconds to seek to
+                  example: 120
+            examples:
+              seek_to_2min:
+                summary: Seek to 2 minutes
+                value:
+                  position: 120
+      responses:
+        "200":
+          description: Position set successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  position:
+                    type: integer
+                    example: 120
+        "400":
+          description: Bad request (invalid position or missing parameter)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/tempo:
+    get:
+      tags:
+        - parameters
+      summary: Get current tempo
+      description: Get the current playback tempo in BPM
+      operationId: getTempo
+      responses:
+        "200":
+          description: Current tempo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tempo:
+                    type: number
+                    format: float
+                    description: Current tempo in beats per minute
+                    example: 120.0
+    put:
+      tags:
+        - parameters
+      summary: Set playback tempo
+      description: Adjust the playback tempo (speed) of the song
+      operationId: setTempo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tempo
+              properties:
+                tempo:
+                  type: number
+                  format: float
+                  minimum: 0.1
+                  maximum: 1000.0
+                  description: Tempo in beats per minute
+                  example: 140.0
+            examples:
+              faster_tempo:
+                summary: Set faster tempo
+                value:
+                  tempo: 140.0
+              slower_tempo:
+                summary: Set slower tempo
+                value:
+                  tempo: 80.0
+      responses:
+        "200":
+          description: Tempo set successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  tempo:
+                    type: number
+                    format: float
+                    example: 140.0
+        "400":
+          description: Bad request (invalid tempo or missing parameter)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/volume:
+    get:
+      tags:
+        - parameters
+      summary: Get current volume
+      description: Get the current playback volume level
+      operationId: getVolume
+      responses:
+        "200":
+          description: Current volume
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  volume:
+                    type: number
+                    format: double
+                    description: Current volume level (0.0 to 2.0, where 1.0 is normal)
+                    example: 1.0
+    put:
+      tags:
+        - parameters
+      summary: Set playback volume
+      description: Adjust the playback volume level
+      operationId: setVolume
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - volume
+              properties:
+                volume:
+                  type: number
+                  format: double
+                  minimum: 0.0
+                  maximum: 2.0
+                  description: Volume level (0.0 = silent, 1.0 = normal, 2.0 = double volume)
+                  example: 0.8
+            examples:
+              quiet:
+                summary: Set volume to 80%
+                value:
+                  volume: 0.8
+              loud:
+                summary: Set volume to 150%
+                value:
+                  volume: 1.5
+      responses:
+        "200":
+          description: Volume set successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  volume:
+                    type: number
+                    format: double
+                    example: 0.8
+        "400":
+          description: Bad request (invalid volume or missing parameter)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/loop:
+    get:
+      tags:
+        - parameters
+      summary: Get loop mode status
+      description: Check if loop mode is enabled
+      operationId: getLoop
+      responses:
+        "200":
+          description: Current loop mode status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  loop:
+                    type: boolean
+                    description: Whether loop mode is enabled
+                    example: false
+    put:
+      tags:
+        - parameters
+      summary: Set loop mode
+      description: Enable or disable loop mode for continuous playback
+      operationId: setLoop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - loop
+              properties:
+                loop:
+                  type: boolean
+                  description: Whether to enable loop mode
+                  example: true
+            examples:
+              enable_loop:
+                summary: Enable loop mode
+                value:
+                  loop: true
+              disable_loop:
+                summary: Disable loop mode
+                value:
+                  loop: false
+      responses:
+        "200":
+          description: Loop mode set successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  loop:
+                    type: boolean
+                    example: true
+        "400":
+          description: Bad request (missing parameter)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/network/status:
+    get:
+      tags:
+        - network
+      summary: Get network status
+      description: |
+        Returns the current status of the network manager, including information about
+        connected bridges, discovered devices, and available network bridges.
+      operationId: getNetworkStatus
+      responses:
+        "200":
+          description: Network status information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetworkStatus"
+              examples:
+                network_active:
+                  summary: Network manager active with devices
+                  value:
+                    isStarted: true
+                    connectedBridges: 2
+                    discoveredDevices: 5
+                    availableBridges: ["UDP", "Serial"]
+                network_inactive:
+                  summary: Network manager not started
+                  value:
+                    isStarted: false
+                    connectedBridges: 0
+                    discoveredDevices: 0
+                    availableBridges: ["UDP", "Serial"]
+
+  /api/network/devices:
+    get:
+      tags:
+        - network
+      summary: Get discovered devices
+      description: |
+        Returns a list of recently discovered Moppy devices on the network,
+        along with the total count of discovered devices.
+      operationId: getNetworkDevices
+      responses:
+        "200":
+          description: List of discovered devices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetworkDevices"
+              examples:
+                devices_found:
+                  summary: Multiple devices discovered
+                  value:
+                    count: 3
+                    devices:
+                      - networkAddress: "192.168.1.100"
+                        deviceAddress: 1
+                        minSubAddress: 1
+                        maxSubAddress: 8
+                      - networkAddress: "192.168.1.101"
+                        deviceAddress: 2
+                        minSubAddress: 1
+                        maxSubAddress: 4
+                      - networkAddress: "/dev/ttyUSB0"
+                        deviceAddress: 3
+                        minSubAddress: 1
+                        maxSubAddress: 16
+                no_devices:
+                  summary: No devices discovered
+                  value:
+                    count: 0
+                    devices: []
+
+components:
+  schemas:
+    PlaybackState:
+      type: object
+      description: Complete playback state information
+      properties:
+        playbackState:
+          $ref: "#/components/schemas/PlaybackStateEnum"
+        fileName:
+          type: string
+          description: Name of the loaded MIDI file
+          example: "tetris.mid"
+        filePath:
+          type: string
+          description: Full path to the loaded MIDI file
+          example: "/home/user/music/tetris.mid"
+        duration:
+          type: integer
+          description: Total duration of the song in seconds
+          example: 180
+        position:
+          type: integer
+          description: Current playback position in seconds
+          example: 45
+        tempo:
+          type: number
+          format: float
+          description: Current tempo in beats per minute
+          example: 120.0
+        volume:
+          type: number
+          format: double
+          minimum: 0.0
+          maximum: 2.0
+          description: Current volume level (0.0 to 2.0)
+          example: 1.0
+        loop:
+          type: boolean
+          description: Whether loop mode is enabled
+          example: false
+        error:
+          type: string
+          description: Error message if playback state is ERROR
+          example: ""
+        progress:
+          type: number
+          format: double
+          minimum: 0.0
+          maximum: 1.0
+          description: Playback progress as a decimal (0.0 to 1.0)
+          example: 0.25
+        formattedDuration:
+          type: string
+          description: Total duration in MM:SS format
+          example: "3:00"
+        formattedPosition:
+          type: string
+          description: Current position in MM:SS format
+          example: "0:45"
+
+    PlaybackStateEnum:
+      type: string
+      enum:
+        - UNLOADED
+        - LOADED
+        - PLAYING
+        - PAUSED
+        - ERROR
+      description: Current state of the playback system
+      example: PLAYING
+
+    NetworkStatus:
+      type: object
+      description: Current status of the network manager
+      required:
+        - isStarted
+        - connectedBridges
+        - discoveredDevices
+        - availableBridges
+      properties:
+        isStarted:
+          type: boolean
+          description: Whether the network manager is currently started
+          example: true
+        connectedBridges:
+          type: integer
+          description: Number of currently connected network bridges
+          minimum: 0
+          example: 2
+        discoveredDevices:
+          type: integer
+          description: Number of devices discovered by the network manager
+          minimum: 0
+          example: 5
+        availableBridges:
+          type: array
+          description: List of available bridge types
+          items:
+            type: string
+          example: ["UDP", "Serial"]
+
+    NetworkDevices:
+      type: object
+      description: Information about discovered network devices
+      required:
+        - count
+        - devices
+      properties:
+        count:
+          type: integer
+          description: Total number of discovered devices
+          minimum: 0
+          example: 3
+        devices:
+          type: array
+          description: List of discovered devices
+          items:
+            $ref: "#/components/schemas/NetworkDevice"
+
+    NetworkDevice:
+      type: object
+      description: Information about a discovered network device
+      required:
+        - networkAddress
+        - deviceAddress
+        - minSubAddress
+        - maxSubAddress
+      properties:
+        networkAddress:
+          type: string
+          description: Network address or port of the device
+          example: "192.168.1.100"
+        deviceAddress:
+          type: integer
+          description: Device address identifier
+          minimum: 0
+          maximum: 255
+          example: 1
+        minSubAddress:
+          type: integer
+          description: Minimum sub-address supported by the device
+          minimum: 0
+          maximum: 255
+          example: 1
+        maxSubAddress:
+          type: integer
+          description: Maximum sub-address supported by the device
+          minimum: 0
+          maximum: 255
+          example: 8
+
+    SuccessResponse:
+      type: object
+      description: Standard success response
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation completed successfully"
+      additionalProperties: true
+
+    ErrorResponse:
+      type: object
+      description: Standard error response
+      required:
+        - error
+        - status
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Invalid request"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+
+  examples:
+    PlaybackStateLoaded:
+      summary: Song loaded and ready to play
+      value:
+        playbackState: "LOADED"
+        fileName: "tetris.mid"
+        filePath: "/home/user/music/tetris.mid"
+        duration: 180
+        position: 0
+        tempo: 120.0
+        volume: 1.0
+        loop: false
+        error: ""
+        progress: 0.0
+        formattedDuration: "3:00"
+        formattedPosition: "0:00"
+
+    PlaybackStatePlaying:
+      summary: Song currently playing
+      value:
+        playbackState: "PLAYING"
+        fileName: "tetris.mid"
+        filePath: "/home/user/music/tetris.mid"
+        duration: 180
+        position: 45
+        tempo: 120.0
+        volume: 1.0
+        loop: false
+        error: ""
+        progress: 0.25
+        formattedDuration: "3:00"
+        formattedPosition: "0:45"
+
+    PlaybackStateError:
+      summary: Error state with message
+      value:
+        playbackState: "ERROR"
+        fileName: ""
+        filePath: ""
+        duration: 0
+        position: 0
+        tempo: 120.0
+        volume: 1.0
+        loop: false
+        error: "Failed to initialize sequencer: MIDI device unavailable"
+        progress: 0.0
+        formattedDuration: "0:00"
+        formattedPosition: "0:00"

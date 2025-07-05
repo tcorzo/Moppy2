@@ -39,6 +39,8 @@ hs_err_pid*
 /Java/MoppyControlGUI/build/
 /Java/MoppyCLI/.nb-gradle/
 /Java/MoppyCLI/build/
+/Java/MoppyAPI/.nb-gradle/
+/Java/MoppyAPI/build/
 
 #VS Code Files
 Java/*/.classpath
