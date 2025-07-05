@@ -1,0 +1,24 @@
+# Moppy Button Controller Configuration
+moppy_api:
+  host: "localhost"
+  port: 8080
+  base_url: "http://localhost:8080"
+
+buttons:
+  - pin: 18
+    file: "/home/pi/music/tetris.mid"
+  - pin: 19
+    file: "/home/pi/music/kirby.mid"
+  - pin: 20
+    file: "/home/pi/music/opera.mid"
+
+# GPIO configuration
+gpio:
+  mode: "BCM" # or "BOARD"
+  pull_up_down: "PUD_UP" # PUD_UP, PUD_DOWN, or PUD_OFF
+  bounce_time: 200 # milliseconds
+
+# Logging configuration
+logging:
+  level: "INFO" # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

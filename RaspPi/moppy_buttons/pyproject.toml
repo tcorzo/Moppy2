@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "moppy-buttons"
+version = "0.1.0"
+description = "Software for a physical interface running on a Raspberry Pi"
+authors = ["tcorzo <me@tcorzo.dev>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "moppy_buttons" }]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+aiohttp = "^3.9.0"
+PyYAML = "^6.0"
+
+[tool.poetry.group.rpi.dependencies]
+"RPi.GPIO" = "^0.7.1"
+
+[tool.poetry.scripts]
+moppy-buttons = "moppy_buttons.main:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

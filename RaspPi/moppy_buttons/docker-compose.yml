@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  moppy-buttons:
+    build: .
+    container_name: moppy-buttons
+    restart: unless-stopped
+
+    # Required for GPIO access on Raspberry Pi
+    privileged: true
+
+    # Mount device files for GPIO access
+    devices:
+      - "/dev/gpiomem:/dev/gpiomem"
+
+    # Mount configuration and music files
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./music:/app/music:ro  # Mount your music directory
+      - ./logs:/app/logs       # Mount logs directory
+
+    # Environment variables
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+
+    # Network mode for accessing local Moppy API
+    network_mode: host
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
