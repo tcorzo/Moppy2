@@ -33,6 +33,10 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5.7.0
         with:
+          tags: |
+            # set latest tag for master branch
+            # type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'release') }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'feat/dockerize-api') }}
           images: ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME }}
 
       - name: Build and push Docker image
@@ -42,7 +46,7 @@ jobs:
           context: .
           file: ./Java/MoppyAPI/Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}, latest
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Generate artifact attestation
