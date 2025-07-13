@@ -19,6 +19,7 @@ FROM eclipse-temurin:21
 RUN apt-get update && apt-get install -y \
     udev \
     libc6 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user for security
