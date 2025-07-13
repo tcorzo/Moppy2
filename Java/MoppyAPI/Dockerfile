@@ -2,11 +2,10 @@
 # Stage 1: Build the application
 FROM gradle:8-jdk21-alpine AS builder
 
-# Set working directory
-WORKDIR /build
 
-# Copy the entire Java project structure
-COPY . .
+# Copy the necessary files for the build
+COPY ./Java/MoppyAPI /build/MoppyAPI
+COPY ./Java/MoppyLib /build/MoppyLib
 
 # Build the MoppyAPI project with shadow JAR
 WORKDIR /build/MoppyAPI
