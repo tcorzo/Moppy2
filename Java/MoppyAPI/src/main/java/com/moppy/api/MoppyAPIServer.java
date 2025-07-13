@@ -221,6 +221,7 @@ public class MoppyAPIServer {
                 return;
             }
 
+            playbackService.updateState();
             sendJsonResponse(exchange, playbackService.getState(), 200);
         }
     }

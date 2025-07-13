@@ -1,0 +1,54 @@
+services:
+  moppy-api:
+    build:
+      context: ../  # Build from the Java root directory to include MoppyLib
+      dockerfile: MoppyAPI/Dockerfile
+    container_name: moppy-api-server
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # JVM options for Raspberry Pi optimization
+      - JAVA_OPTS=-Xmx512m -XX:+UseG1GC -XX:+UseContainerSupport
+      # Optional: Set timezone
+      - TZ=UTC
+    devices:
+      # Mount all USB serial devices for COM port access
+      # This will give the container access to all USB serial devices
+      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyUSB1:/dev/ttyUSB1
+      - /dev/ttyUSB2:/dev/ttyUSB2
+      - /dev/ttyUSB3:/dev/ttyUSB3
+      - /dev/ttyACM0:/dev/ttyACM0
+      - /dev/ttyACM1:/dev/ttyACM1
+      - /dev/ttyACM2:/dev/ttyACM2
+      - /dev/ttyACM3:/dev/ttyACM3
+    # Alternative approach: Mount the entire /dev directory (less secure but more flexible)
+    # volumes:
+    #   - /dev:/dev:rw
+    privileged: false  # We don't need full privileged access
+    # Grant specific capabilities for device access
+    cap_add:
+      - SYS_RAWIO  # For raw I/O access to devices
+    volumes:
+      # Mount directories for persistent data if needed
+      - ./logs:/app/logs
+      - ./config:/app/config
+      # Mount udev rules for device detection
+      - /run/udev:/run/udev:ro
+    # networks:
+    #   - moppy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# networks:
+#   moppy-network:
+#     driver: bridge
+#     ipam:
+#       config:
+#         # Use multicast-friendly subnet
+#         - subnet: 172.20.0.0/16
