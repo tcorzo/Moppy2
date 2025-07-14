@@ -17,8 +17,10 @@ jobs:
       matrix:
         include:
           - image: ghcr.io/${{ github.actor }}/moppy2-api
+            build_context: .
             dockerfile: Java/MoppyAPI/Dockerfile
           - image: ghcr.io/${{ github.actor }}/moppy2-web
+            build_context: Web/moppy-web
             dockerfile: Web/moppy-web/Dockerfile
 
     steps:
@@ -45,7 +47,7 @@ jobs:
         id: push
         uses: docker/build-push-action@v6.18.0
         with:
-          context: .
+          context: ${{ matrix.build_context }}
           file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
