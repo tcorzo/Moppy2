@@ -4,10 +4,6 @@ on:
   push:
     branches: ['master']
 
-env:
-  REGISTRY: ghcr.io
-  API_IMAGE_NAME: tcorzo/moppy2-api
-
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
@@ -17,6 +13,16 @@ jobs:
       attestations: write
       id-token: write
 
+    strategy:
+      matrix:
+        include:
+          - image: ghcr.io/${{ github.actor }}/moppy2-api
+            build_context: .
+            dockerfile: Java/MoppyAPI/Dockerfile
+          - image: ghcr.io/${{ github.actor }}/moppy2-web
+            build_context: Web/moppy-web
+            dockerfile: Web/moppy-web/Dockerfile
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.2.2
@@ -24,7 +30,7 @@ jobs:
       - name: Log in to the Container registry
         uses: docker/login-action@v3.4.0
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -35,14 +41,14 @@ jobs:
           tags: |
             # set latest tag for master branch
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-          images: ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME }}
+          images: ${{ matrix.image }}
 
       - name: Build and push Docker image
-        id: push-api
+        id: push
         uses: docker/build-push-action@v6.18.0
         with:
-          context: .
-          file: ./Java/MoppyAPI/Dockerfile
+          context: ${{ matrix.build_context }}
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -50,7 +56,7 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2.4.0
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME}}
-          subject-digest: ${{ steps.push-api.outputs.digest }}
+          subject-name: ${{ matrix.image }}
+          subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
