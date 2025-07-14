@@ -47,6 +47,7 @@ jobs:
         id: push
         uses: docker/build-push-action@v6.18.0
         with:
+          platforms: linux/amd64,linux/arm64
           context: ${{ matrix.build_context }}
           file: ${{ matrix.dockerfile }}
           push: true
